@@ -14,10 +14,10 @@ export async function GET() {
 
         const staff = await getStaffRoster(spreadsheetId);
         return NextResponse.json(staff);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error fetching staff roster:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch staff roster' },
+            { error: `Failed to fetch staff roster: ${error.message || JSON.stringify(error)}` },
             { status: 500 }
         );
     }
