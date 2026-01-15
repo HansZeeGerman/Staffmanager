@@ -1,0 +1,134 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth.js models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Application models
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  emailVerified     DateTime?
+  name              String
+  image             String?
+  role              String    @default("STAFF") // STAFF, MANAGER, ADMIN
+  hourlyRate        Float     @default(11.00)
+  overtimeThreshold Float     @default(40.0) // hours per week
+  overtimeRate      Float     @default(16.50)
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  accounts   Account[]
+  sessions   Session[]
+  shifts     Shift[]
+  auditLogs  AuditLog[]
+  approvedShifts Shift[] @relation("ApprovedBy")
+}
+
+
+
+model Shift {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+
+  clockIn           DateTime
+  clockOut          DateTime?
+  area              String?   // BAR, FLOOR, KITCHEN
+
+  duration          Int?      // minutes, calculated
+  regularHours      Float?
+  overtimeHours     Float?
+  totalPay          Float?
+
+  isLocked          Boolean   @default(false)
+  lockedReason      String?
+  isApproved        Boolean   @default(false)
+  approvedBy        String?
+  approvedByUser    User?     @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  approvedAt        DateTime?
+
+  adjustmentMinutes Int?
+  adjustmentReason  String?
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([clockIn])
+  @@index([isApproved])
+}
+
+
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+
+  action     String   // CLOCK_IN, CLOCK_OUT, APPROVE, ADJUST, EXPORT
+  entityType String   // SHIFT, PAYROLL, STAFF
+  entityId   String?
+  details    String?  // JSON stored as string in SQLite
+
+  ipAddress  String?
+  userAgent  String?
+
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Config {
+  id                String    @id @default(cuid())
+  maxShiftHours     Int       @default(12)
+  sheetsSyncEnabled Boolean   @default(true)
+  lastSheetsSyncAt  DateTime?
+
+  updatedAt         DateTime  @updatedAt
+}
