@@ -31,19 +31,20 @@ export default function TimeClock() {
 
   const loadData = async () => {
     try {
-      const [staffRes, statusRes, debugRes] = await Promise.all([
-        fetch('/api/staff'),
-        fetch('/api/status'),
-        fetch('/api/debug')
-      ]);
-
-      // ALWAYS set debug data, even if 500
+      // Fetch Debug Data Independently
       try {
+        const debugRes = await fetch('/api/debug');
         const debugJson = await debugRes.json();
         setDebugData(debugJson);
-      } catch (e) {
-        setDebugData({ error: 'Failed to parse debug JSON' });
+      } catch (e: any) {
+        setDebugData({ error: 'Debug Fetch Failed', details: e.message });
       }
+
+      // Fetch Main Data
+      const [staffRes, statusRes] = await Promise.all([
+        fetch('/api/staff'),
+        fetch('/api/status'),
+      ]);
 
 
       if (!staffRes.ok) {
@@ -167,7 +168,7 @@ export default function TimeClock() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-6xl mx-auto"><div className="bg-red-500 text-white font-bold p-2 mb-2 text-center">FORCE DEBUG DISPLAY: {debugData ? "DATA LOADED" : "NO DATA"}</div>
         {/* RAW DEBUG DATA - FORCE DISPLAY */}
         {debugData && (
           <div className="bg-black text-green-400 p-4 mb-4 rounded overflow-auto font-mono text-xs border-4 border-green-500 shadow-2xl">
