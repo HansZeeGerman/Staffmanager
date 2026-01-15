@@ -3,7 +3,7 @@ import { getCurrentStatus } from '@/lib/googleSheets';
 
 export async function GET() {
     try {
-        const spreadsheetId = process.env.VITE_GOOGLE_SHEETS_ID;
+        const spreadsheetId = process.env.VITE_GOOGLE_SHEETS_ID || '1aiThC_lypPuYqEDl59-vnSLDFaARCXQItzmNZKwdItE';
 
         if (!spreadsheetId) {
             return NextResponse.json(
