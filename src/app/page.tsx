@@ -34,11 +34,15 @@ export default function TimeClock() {
       const [staffRes, statusRes, debugRes] = await Promise.all([
         fetch('/api/staff'),
         fetch('/api/status'),
-        fetch('/api/debug') // Fetch raw data too
+        fetch('/api/debug')
       ]);
 
-      if (debugRes.ok) {
-        setDebugData(await debugRes.json());
+      // ALWAYS set debug data, even if 500
+      try {
+        const debugJson = await debugRes.json();
+        setDebugData(debugJson);
+      } catch (e) {
+        setDebugData({ error: 'Failed to parse debug JSON' });
       }
 
 
