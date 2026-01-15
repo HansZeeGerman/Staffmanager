@@ -42,8 +42,8 @@ export default function TimeClock() {
 
       // Fetch Main Data
       const [staffRes, statusRes] = await Promise.all([
-        fetch('/api/staff'),
-        fetch('/api/status'),
+        fetch('/api/staff', { cache: 'no-store' }),
+        fetch('/api/status', { cache: 'no-store' }),
       ]);
 
 
@@ -183,6 +183,9 @@ export default function TimeClock() {
                 month: 'long',
                 day: 'numeric'
               })}
+            </div>
+            <div className="text-xs text-gray-400 mt-2 font-mono">
+              System Ready • Staff Loaded: {staffList.length}
             </div>
           </div>
         </div>
