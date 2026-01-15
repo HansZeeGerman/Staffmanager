@@ -171,8 +171,8 @@ export default function TimeClock() {
       <div className="max-w-6xl mx-auto">
         {/* TEMP: RAW DIAGNOSTIC DISPLAY */}
         <div className="bg-yellow-100 p-2 text-xs font-mono mb-2 overflow-auto break-all">
-          <b>API STATUS:</b> {JSON.stringify(debugData?.status)}<br />
-          <b>RAW RESPONSE:</b> {JSON.stringify(debugData?.raw)}
+          <b>LOADING:</b> {loading ? "TRUE" : "FALSE"}<br />
+          <b>DEBUG OBJECT:</b> {JSON.stringify(debugData)}
         </div>
         {/* Header with Clock */}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
