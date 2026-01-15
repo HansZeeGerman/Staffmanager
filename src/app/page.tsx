@@ -168,14 +168,7 @@ export default function TimeClock() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <div className="max-w-6xl mx-auto"><div className="bg-red-500 text-white font-bold p-2 mb-2 text-center">FORCE DEBUG DISPLAY: {debugData ? "DATA LOADED" : "NO DATA"}</div>
-        {/* RAW DEBUG DATA - FORCE DISPLAY */}
-        {debugData && (
-          <div className="bg-black text-green-400 p-4 mb-4 rounded overflow-auto font-mono text-xs border-4 border-green-500 shadow-2xl">
-            <h3 className="text-white font-bold mb-2">DEBUG MODE ACTIVATED</h3>
-            <pre>{JSON.stringify(debugData, null, 2)}</pre>
-          </div>
-        )}
+      <div className="max-w-6xl mx-auto">
         {/* Header with Clock */}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <div className="text-center">
