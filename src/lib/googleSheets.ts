@@ -3,6 +3,12 @@ import path from 'path';
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
+function cleanSpreadsheetId(id: string): string {
+    // If it's a URL, extract the ID
+    const match = id.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    return match ? match[1] : id;
+}
+
 export async function getGoogleSheetsClient() {
     const authOptions: any = {
         scopes: SCOPES,
@@ -54,6 +60,7 @@ export interface TimeEntry {
 
 // Get all staff from Staff Roster sheet
 export async function getStaffRoster(spreadsheetId: string): Promise<StaffRoster[]> {
+    spreadsheetId = cleanSpreadsheetId(spreadsheetId);
     const sheets = await getGoogleSheetsClient();
 
     const response = await sheets.spreadsheets.values.get({
@@ -78,6 +85,7 @@ export async function clockIn(
     staffName: string
 ): Promise<{ success: boolean; message: string }> {
     try {
+        spreadsheetId = cleanSpreadsheetId(spreadsheetId);
         const sheets = await getGoogleSheetsClient();
 
         // Get staff info from roster
@@ -165,6 +173,7 @@ export async function takeBreak(
     staffName: string
 ): Promise<{ success: boolean; message: string }> {
     try {
+        spreadsheetId = cleanSpreadsheetId(spreadsheetId);
         const sheets = await getGoogleSheetsClient();
         const today = new Date().toLocaleDateString('en-US');
 
@@ -246,6 +255,7 @@ export async function clockOut(
     staffName: string
 ): Promise<{ success: boolean; message: string }> {
     try {
+        spreadsheetId = cleanSpreadsheetId(spreadsheetId);
         const sheets = await getGoogleSheetsClient();
 
         // Find today's entry
@@ -337,6 +347,7 @@ export async function getCurrentStatus(spreadsheetId: string): Promise<{
     status: 'clocked-in' | 'on-break' | 'clocked-out';
 }[]> {
     try {
+        spreadsheetId = cleanSpreadsheetId(spreadsheetId);
         const roster = await getStaffRoster(spreadsheetId);
         const today = new Date().toLocaleDateString('en-US');
         const sheets = await getGoogleSheetsClient();
@@ -395,8 +406,9 @@ export async function addStaffMember(
     staffData: StaffRoster
 ): Promise<{ success: boolean; message: string }> {
     try {
+        spreadsheetId = cleanSpreadsheetId(spreadsheetId);
         const sheets = await getGoogleSheetsClient();
-        
+
         // 1. Add to Staff Roster
         const rosterValues = [[
             staffData.name,
@@ -405,7 +417,7 @@ export async function addStaffMember(
             staffData.hourlyWage, // Now using simple number
             'Active',
         ]];
-        
+
         await sheets.spreadsheets.values.append({
             spreadsheetId,
             range: 'Staff Roster!A:E',
@@ -415,7 +427,7 @@ export async function addStaffMember(
 
         // 2. Create Individual Sheet
         const sheetTitle = staffData.name;
-        
+
         // Check if sheet exists
         const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
         const sheetExists = spreadsheet.data.sheets?.some(
@@ -461,6 +473,7 @@ export async function updateStaffMember(
     staffData: StaffRoster
 ): Promise<{ success: boolean; message: string }> {
     try {
+        spreadsheetId = cleanSpreadsheetId(spreadsheetId);
         const sheets = await getGoogleSheetsClient();
 
         // 1. Find row in Roster
@@ -468,7 +481,7 @@ export async function updateStaffMember(
             spreadsheetId,
             range: 'Staff Roster!A2:A',
         });
-        
+
         const rows = rosterData.data.values || [];
         const rowIndex = rows.findIndex(row => row[0] === oldName);
 
@@ -478,7 +491,7 @@ export async function updateStaffMember(
 
         // 2. Update Roster Row (Row index + 2 because of header and 0-index)
         const updateRange = `Staff Roster!A${rowIndex + 2}:D${rowIndex + 2}`;
-        
+
         await sheets.spreadsheets.values.update({
             spreadsheetId,
             range: updateRange,
