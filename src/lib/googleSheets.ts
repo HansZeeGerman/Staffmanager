@@ -388,3 +388,139 @@ export async function getCurrentStatus(spreadsheetId: string): Promise<{
         return [];
     }
 }
+
+// Add Staff Member - Create sheet if not exists and update roster
+export async function addStaffMember(
+    spreadsheetId: string,
+    staffData: StaffRoster
+): Promise<{ success: boolean; message: string }> {
+    try {
+        const sheets = await getGoogleSheetsClient();
+        
+        // 1. Add to Staff Roster
+        const rosterValues = [[
+            staffData.name,
+            staffData.department,
+            staffData.position,
+            staffData.hourlyWage, // Now using simple number
+            'Active',
+        ]];
+        
+        await sheets.spreadsheets.values.append({
+            spreadsheetId,
+            range: 'Staff Roster!A:E',
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: rosterValues },
+        });
+
+        // 2. Create Individual Sheet
+        const sheetTitle = staffData.name;
+        
+        // Check if sheet exists
+        const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+        const sheetExists = spreadsheet.data.sheets?.some(
+            s => s.properties?.title === sheetTitle
+        );
+
+        if (!sheetExists) {
+            await sheets.spreadsheets.batchUpdate({
+                spreadsheetId,
+                requestBody: {
+                    requests: [{
+                        addSheet: {
+                            properties: { title: sheetTitle }
+                        }
+                    }]
+                }
+            });
+
+            // Add Headers
+            const headers = [
+                ['Date', 'Sign In', 'Sign Out', 'Hours Worked', 'Hourly Wage', 'Pay for Day', 'Cumulative Day Pay', 'Notes']
+            ];
+
+            await sheets.spreadsheets.values.update({
+                spreadsheetId,
+                range: `'${sheetTitle}'!A1:H1`,
+                valueInputOption: 'USER_ENTERED',
+                requestBody: { values: headers },
+            });
+        }
+
+        return { success: true, message: 'Staff member added successfully' };
+    } catch (error: any) {
+        console.error('Error adding staff:', error);
+        return { success: false, message: error.message || 'Failed to add staff member' };
+    }
+}
+
+// Update Staff Member
+export async function updateStaffMember(
+    spreadsheetId: string,
+    oldName: string,
+    staffData: StaffRoster
+): Promise<{ success: boolean; message: string }> {
+    try {
+        const sheets = await getGoogleSheetsClient();
+
+        // 1. Find row in Roster
+        const rosterData = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: 'Staff Roster!A2:A',
+        });
+        
+        const rows = rosterData.data.values || [];
+        const rowIndex = rows.findIndex(row => row[0] === oldName);
+
+        if (rowIndex === -1) {
+            return { success: false, message: 'Staff member not found' };
+        }
+
+        // 2. Update Roster Row (Row index + 2 because of header and 0-index)
+        const updateRange = `Staff Roster!A${rowIndex + 2}:D${rowIndex + 2}`;
+        
+        await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: updateRange,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+                values: [[
+                    staffData.name,
+                    staffData.department,
+                    staffData.position,
+                    staffData.hourlyWage
+                ]]
+            }
+        });
+
+        // 3. Rename Sheet if name changed
+        if (oldName !== staffData.name) {
+            const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId });
+            const sheet = spreadsheet.data.sheets?.find(
+                s => s.properties?.title === oldName
+            );
+
+            if (sheet?.properties?.sheetId) {
+                await sheets.spreadsheets.batchUpdate({
+                    spreadsheetId,
+                    requestBody: {
+                        requests: [{
+                            updateSheetProperties: {
+                                properties: {
+                                    sheetId: sheet.properties.sheetId,
+                                    title: staffData.name,
+                                },
+                                fields: 'title',
+                            }
+                        }]
+                    }
+                });
+            }
+        }
+
+        return { success: true, message: 'Staff updated successfully' };
+    } catch (error: any) {
+        console.error('Error updating staff:', error);
+        return { success: false, message: 'Failed to update staff' };
+    }
+}
