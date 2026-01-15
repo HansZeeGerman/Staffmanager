@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getStaffRoster } from '@/lib/googleSheets';
 
+export const dynamic = 'force-dynamic';
+
+
 export async function GET() {
     try {
         const spreadsheetId = process.env.VITE_GOOGLE_SHEETS_ID || '1aiThC_lypPuYqEDl59-vnSLDFaARCXQItzmNZKwdItE';
