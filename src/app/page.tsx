@@ -44,10 +44,14 @@ export default function TimeClock() {
         fetch('/api/status'),
       ]);
 
-      if (staffRes.ok) {
-        const staff = await staffRes.json();
-        setStaffList(staff);
+      if (!staffRes.ok) {
+        let errText = await staffRes.text();
+        try { errText = JSON.parse(errText).error || errText; } catch (e) { }
+        throw new Error(`Staff API Error: ${staffRes.status} - ${errText}`);
       }
+
+      const staff = await staffRes.json();
+      setStaffList(staff);
 
       if (statusRes.ok) {
         const status = await statusRes.json();
