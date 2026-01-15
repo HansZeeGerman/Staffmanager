@@ -172,7 +172,8 @@ export default function TimeClock() {
         {/* TEMP: RAW DIAGNOSTIC DISPLAY */}
         <div className="bg-yellow-100 p-2 text-xs font-mono mb-2 overflow-auto break-all">
           <b>LOADING:</b> {loading ? "TRUE" : "FALSE"}<br />
-          <b>DEBUG OBJECT:</b> {JSON.stringify(debugData)}
+          <b>DEBUG OBJECT:</b> {JSON.stringify(debugData)}<br />
+          <b>ERROR DETAILS:</b> {JSON.stringify(errorDetails)}
         </div>
         {/* Header with Clock */}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
