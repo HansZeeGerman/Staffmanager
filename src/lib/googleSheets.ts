@@ -9,9 +9,13 @@ function cleanSpreadsheetId(id: string): string {
     return match ? match[1] : id;
 }
 
+// FORCE CORRECT ID - Ignore Environment Variable to fix deployment
+const HARDCODED_SPREADSHEET_ID = '1aiThC_lypPuYqEDl59-vnSLDFaARCXQItzmNZKwdItE';
+
 export async function getGoogleSheetsClient() {
     const authOptions: any = {
         scopes: SCOPES,
+        credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS!),
     };
 
     if (process.env.GOOGLE_CREDENTIALS) {
@@ -60,7 +64,8 @@ export interface TimeEntry {
 
 // Get all staff from Staff Roster sheet
 export async function getStaffRoster(spreadsheetId: string): Promise<StaffRoster[]> {
-    spreadsheetId = cleanSpreadsheetId(spreadsheetId);
+    // IGNORE ARGUMENT, USE HARDCODED ID
+    spreadsheetId = HARDCODED_SPREADSHEET_ID;
     const sheets = await getGoogleSheetsClient();
 
     const response = await sheets.spreadsheets.values.get({
@@ -85,7 +90,7 @@ export async function clockIn(
     staffName: string
 ): Promise<{ success: boolean; message: string }> {
     try {
-        spreadsheetId = cleanSpreadsheetId(spreadsheetId);
+        spreadsheetId = HARDCODED_SPREADSHEET_ID;
         const sheets = await getGoogleSheetsClient();
 
         // Get staff info from roster
@@ -173,7 +178,7 @@ export async function takeBreak(
     staffName: string
 ): Promise<{ success: boolean; message: string }> {
     try {
-        spreadsheetId = cleanSpreadsheetId(spreadsheetId);
+        spreadsheetId = HARDCODED_SPREADSHEET_ID;
         const sheets = await getGoogleSheetsClient();
         const today = new Date().toLocaleDateString('en-US');
 
@@ -255,7 +260,7 @@ export async function clockOut(
     staffName: string
 ): Promise<{ success: boolean; message: string }> {
     try {
-        spreadsheetId = cleanSpreadsheetId(spreadsheetId);
+        spreadsheetId = HARDCODED_SPREADSHEET_ID;
         const sheets = await getGoogleSheetsClient();
 
         // Find today's entry
@@ -347,7 +352,7 @@ export async function getCurrentStatus(spreadsheetId: string): Promise<{
     status: 'clocked-in' | 'on-break' | 'clocked-out';
 }[]> {
     try {
-        spreadsheetId = cleanSpreadsheetId(spreadsheetId);
+        spreadsheetId = HARDCODED_SPREADSHEET_ID;
         const roster = await getStaffRoster(spreadsheetId);
         const today = new Date().toLocaleDateString('en-US');
         const sheets = await getGoogleSheetsClient();
@@ -406,7 +411,7 @@ export async function addStaffMember(
     staffData: StaffRoster
 ): Promise<{ success: boolean; message: string }> {
     try {
-        spreadsheetId = cleanSpreadsheetId(spreadsheetId);
+        spreadsheetId = HARDCODED_SPREADSHEET_ID;
         const sheets = await getGoogleSheetsClient();
 
         // 1. Add to Staff Roster
@@ -473,7 +478,7 @@ export async function updateStaffMember(
     staffData: StaffRoster
 ): Promise<{ success: boolean; message: string }> {
     try {
-        spreadsheetId = cleanSpreadsheetId(spreadsheetId);
+        spreadsheetId = HARDCODED_SPREADSHEET_ID;
         const sheets = await getGoogleSheetsClient();
 
         // 1. Find row in Roster

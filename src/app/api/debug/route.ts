@@ -3,10 +3,7 @@ import { getGoogleSheetsClient } from '@/lib/googleSheets';
 
 export async function GET() {
     try {
-        let spreadsheetId = process.env.VITE_GOOGLE_SHEETS_ID || '1aiThC_lypPuYqEDl59-vnSLDFaARCXQItzmNZKwdItE';
-        // Clean ID if it is a URL
-        const match = spreadsheetId.match(/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-        if (match) spreadsheetId = match[1];
+        const spreadsheetId = '1aiThC_lypPuYqEDl59-vnSLDFaARCXQItzmNZKwdItE';
 
         const sheets = await getGoogleSheetsClient();
 
