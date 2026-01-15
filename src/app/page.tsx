@@ -22,6 +22,7 @@ export default function TimeClock() {
   const [staffStatus, setStaffStatus] = useState<StaffStatus[]>([]);
   const [selectedStaff, setSelectedStaff] = useState('');
   const [message, setMessage] = useState('');
+  const [errorDetails, setErrorDetails] = useState(''); // DEBUG
   const [loading, setLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -52,8 +53,9 @@ export default function TimeClock() {
         const status = await statusRes.json();
         setStaffStatus(status);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading data:', error);
+      setErrorDetails(error.message || JSON.stringify(error));
     }
   };
 
@@ -178,7 +180,7 @@ export default function TimeClock() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {errorDetails && (<div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6"><h3 className="text-red-800">Connection Error: {errorDetails}</h3></div>)} <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Clock In/Out Panel */}
           <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-8">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Clock In / Out</h2>
