@@ -23,26 +23,24 @@ export default function TimeClock() {
   const [selectedStaff, setSelectedStaff] = useState('');
   const [message, setMessage] = useState('');
   const [errorDetails, setErrorDetails] = useState(''); // DEBUG
+  const [debugData, setDebugData] = useState<any>(null); // DEBUG RAW
   const [loading, setLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Update clock every second
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Load staff roster and status
-  useEffect(() => {
-    loadData();
-  }, []);
+  // ... (previous useEffects)
 
   const loadData = async () => {
     try {
-      const [staffRes, statusRes] = await Promise.all([
+      const [staffRes, statusRes, debugRes] = await Promise.all([
         fetch('/api/staff'),
         fetch('/api/status'),
+        fetch('/api/debug') // Fetch raw data too
       ]);
+
+      if (debugRes.ok) {
+        setDebugData(await debugRes.json());
+      }
+
 
       if (!staffRes.ok) {
         let errText = await staffRes.text();
