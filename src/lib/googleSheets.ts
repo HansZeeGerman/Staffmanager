@@ -303,7 +303,7 @@ export async function returnFromBreak(
             spreadsheetId,
             range: `Dashboard!J${dashboardRowIndex}`,
             valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [[`Working (break: ${breakDurationMinutes} min)`]] },
+            requestBody: { values: [['Working']] },
         });
 
         // Clear the sign out time (column F) since they're back to working
