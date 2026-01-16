@@ -76,7 +76,7 @@ export async function getStaffRoster(spreadsheetId: string): Promise<StaffRoster
     const rows = response.data.values || [];
 
     return rows.map(row => ({
-        name: row[0] || '',
+        name: (row[0] || '').trim(), // Trim whitespace from names
         department: row[1] || '',
         position: row[2] || '',
         hourlyWage: parseFloat(row[3]?.toString().replace(/[^0-9.]/g, '') || '0') || 0,

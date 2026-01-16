@@ -275,25 +275,41 @@ export default function TimeClock() {
               </div>
 
               {selectedStaff && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">Status</p>
-                      <p className={`text-lg font-semibold ${isStaffClockedIn ? 'text-green-600' : isStaffOnBreak ? 'text-orange-600' : 'text-gray-600'
-                        }`}>
-                        {isStaffClockedIn ? '🟢 Working' : isStaffOnBreak ? '🟠 On a Break' : '⚪ Clocked Out'}
+                <>
+                  {/* Prominent Selected Staff Display */}
+                  <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-xl shadow-lg">
+                    <div className="text-center">
+                      <p className="text-sm font-medium opacity-90 mb-1">Currently Selected</p>
+                      <h3 className="text-4xl font-bold mb-2">
+                        {staffList.find(s => s.name === selectedStaff)?.name || selectedStaff}
+                      </h3>
+                      <p className="text-lg opacity-90">
+                        {staffList.find(s => s.name === selectedStaff)?.department} - {staffList.find(s => s.name === selectedStaff)?.position}
                       </p>
                     </div>
-                    {(isStaffClockedIn || isStaffOnBreak) && (
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">Sign In Time</p>
-                        <p className="text-lg font-semibold text-indigo-600">
-                          {currentStatusObj?.signInTime}
+                  </div>
+
+                  {/* Status Card */}
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Status</p>
+                        <p className={`text-lg font-semibold ${isStaffClockedIn ? 'text-green-600' : isStaffOnBreak ? 'text-orange-600' : 'text-gray-600'
+                          }`}>
+                          {isStaffClockedIn ? '🟢 Working' : isStaffOnBreak ? '🟠 On a Break' : '⚪ Clocked Out'}
                         </p>
                       </div>
-                    )}
+                      {(isStaffClockedIn || isStaffOnBreak) && (
+                        <div className="text-right">
+                          <p className="text-sm text-gray-600">Sign In Time</p>
+                          <p className="text-lg font-semibold text-indigo-600">
+                            {currentStatusObj?.signInTime}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -301,8 +317,8 @@ export default function TimeClock() {
                   onClick={isStaffOnBreak ? handleReturnFromBreak : handleClockIn}
                   disabled={loading || !selectedStaff || (isStaffClockedIn && !isStaffOnBreak)}
                   className={`px-4 py-4 text-lg font-semibold text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition transform hover:scale-105 ${isStaffOnBreak
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-green-600 hover:bg-green-700'
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-green-600 hover:bg-green-700'
                     }`}
                 >
                   {loading ? '...' : isStaffOnBreak ? '↩️ Return from Break' : 'Clock In'}
