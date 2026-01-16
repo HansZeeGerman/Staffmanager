@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react';
 
+// Force dynamic rendering on every request
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
+
 interface StaffMember {
   name: string;
   department: string;
@@ -23,22 +27,36 @@ export default function TimeClock() {
   const [selectedStaff, setSelectedStaff] = useState('');
   const [message, setMessage] = useState('');
   const [errorDetails, setErrorDetails] = useState(''); // DEBUG
-  const [debugData, setDebugData] = useState<any>(null); // DEBUG RAW
+  const [debugData, setDebugData] = useState<any>({ mounted: 'INITIAL_STATE' }); // DEBUG RAW
   const [loading, setLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // ... (previous useEffects)
+  // Clock update effect
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Data loading effect
+  useEffect(() => {
+    setDebugData({ mounted: 'USE_EFFECT_FIRED', timestamp: new Date().toISOString() });
+    loadData();
+  }, []);
 
   const loadData = async () => {
     try {
+      setDebugData({ status: 'FETCHING_DEBUG_API', timestamp: new Date().toISOString() });
+
       // Fetch Debug Data Independently
       try {
-        const debugRes = await fetch('/api/debug');
+        const debugRes = await fetch('/api/debug', { cache: 'no-store' });
         const debugJson = await debugRes.json();
-        setDebugData(debugJson);
+        setDebugData({ ...debugJson, fetchedDebugAt: new Date().toISOString() });
       } catch (e: any) {
         setDebugData({ error: 'Debug Fetch Failed', details: e.message });
       }
+
+      setDebugData(prev => ({ ...prev, status: 'FETCHING_STAFF_API' }));
 
       const [staffRes, statusRes] = await Promise.all([
         fetch('/api/staff', { cache: 'no-store' }),
@@ -47,7 +65,7 @@ export default function TimeClock() {
 
       const staffText = await staffRes.text();
       // Store raw text for debugging
-      setDebugData({ status: staffRes.status, raw: staffText.substring(0, 500) });
+      setDebugData({ status: staffRes.status, raw: staffText.substring(0, 500), fetchedStaffAt: new Date().toISOString() });
 
       if (!staffRes.ok) {
         throw new Error(`Staff API Error: ${staffRes.status} - ${staffText}`);
@@ -60,9 +78,12 @@ export default function TimeClock() {
         const status = await statusRes.json();
         setStaffStatus(status);
       }
+
+      setErrorDetails('');  // Clear any previous errors
     } catch (error: any) {
       console.error('Error loading data:', error);
       setErrorDetails(error.message || JSON.stringify(error));
+      setDebugData(prev => ({ ...prev, error: error.message, stack: error.stack }));
     }
   };
 
