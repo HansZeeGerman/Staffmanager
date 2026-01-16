@@ -232,7 +232,10 @@ export default function TimeClock() {
         {/* Header with Clock */}
         <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
           <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">Staff Time Clock</h1>
+            <h1 className="text-5xl font-bold text-indigo-900 mb-2">
+              {process.env.NEXT_PUBLIC_BUSINESS_NAME || 'Blue Diamond'}
+            </h1>
+            <p className="text-2xl text-indigo-600 mb-4">Staff Time Clock</p>
             <div className="text-6xl font-bold text-indigo-600 mb-2">
               {currentTime.toLocaleTimeString('en-US')}
             </div>
