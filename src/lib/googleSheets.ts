@@ -173,48 +173,23 @@ export async function clockIn(
     }
 }
 
-// Take Break - Similar to Clock Out but sets status to "On a Break"
+// Take Break - Update status and create BreakTimes entry
 export async function takeBreak(
     spreadsheetId: string,
     staffName: string
 ): Promise<{ success: boolean; message: string }> {
     try {
         spreadsheetId = HARDCODED_SPREADSHEET_ID;
-        staffName = staffName.trim(); // Remove leading/trailing whitespace
+        staffName = staffName.trim();
         const sheets = await getGoogleSheetsClient();
         const today = new Date().toLocaleDateString('en-US');
-
-        // Find today's active entry in staff sheet
-        const sheetData = await sheets.spreadsheets.values.get({
-            spreadsheetId,
-            range: `'${staffName}'!A2:C500`,
-        });
-
-        const entries = sheetData.data.values || [];
-        let todayRowIndex = -1;
-
-        for (let i = entries.length - 1; i >= 0; i--) {
-            const rowDate = entries[i][0] ? new Date(entries[i][0]).toLocaleDateString('en-US') : '';
-            if (rowDate === today && entries[i][1] && !entries[i][2]) {
-                todayRowIndex = i + 2;
-                break;
-            }
-        }
-
-        if (todayRowIndex === -1) {
-            return { success: false, message: 'No active session found to break from!' };
-        }
-
         const now = new Date();
         const timeStr = now.toLocaleTimeString('en-US');
 
-        // Update Staff Sheet Sign Out
-        await sheets.spreadsheets.values.update({
-            spreadsheetId,
-            range: `'${staffName}'!C${todayRowIndex}`,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [[timeStr]] },
-        });
+        // Get staff info for department
+        const staffData = await getStaffRoster(spreadsheetId);
+        const staffInfo = staffData.find(s => s.name === staffName);
+        const department = staffInfo?.department || '';
 
         // Update Dashboard Status to "On a Break"
         const dashboardData = await sheets.spreadsheets.values.get({
@@ -233,95 +208,152 @@ export async function takeBreak(
             }
         }
 
-        if (dashboardRowIndex !== -1) {
-            await sheets.spreadsheets.values.update({
-                spreadsheetId,
-                range: `Dashboard!J${dashboardRowIndex}`,
-                valueInputOption: 'USER_ENTERED',
-                requestBody: { values: [['On a Break']] },
-            });
+        if (dashboardRowIndex === -1) {
+            return { success: false, message: 'No active shift found to take break from!' };
         }
 
-        return { success: true, message: `Started break at ${timeStr}` };
+        // Update Dashboard status to "On a Break"
+        await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: `Dashboard!J${dashboardRowIndex}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [['On a Break']] },
+        });
+
+        // Create new row in BreakTimes sheet
+        const breakTimesRow = [
+            today,              // Date
+            staffName,          // Staff Name
+            department,         // Department
+            timeStr,            // Break Start
+            '',                 // Break End (empty until return)
+            '',                 // Duration (empty until return)
+            ''                  // Notes
+        ];
+
+        await sheets.spreadsheets.values.append({
+            spreadsheetId,
+            range: 'BreakTimes!A:G',
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+                values: [breakTimesRow]
+            }
+        });
+
+        return { success: true, message: `Break started at ${timeStr}` };
     } catch (error: any) {
         console.error('Break error:', error);
-        return { success: false, message: 'Error starting break' };
+        return { success: false, message: `Error starting break: ${error.message}` };
     }
 }
 
-// Return from Break - Calculate break duration and update status back to Working
+// Return from Break - Update BreakTimes and accumulate break duration in Notes
 export async function returnFromBreak(
     spreadsheetId: string,
     staffName: string
 ): Promise<{ success: boolean; message: string; breakDuration?: number }> {
     try {
         spreadsheetId = HARDCODED_SPREADSHEET_ID;
-        staffName = staffName.trim(); // Remove leading/trailing whitespace
+        staffName = staffName.trim();
         const sheets = await getGoogleSheetsClient();
         const today = new Date().toLocaleDateString('en-US');
         const now = new Date();
         const timeStr = now.toLocaleTimeString('en-US');
 
-        // Find today's "On a Break" entry in Dashboard
+        // Find active break in BreakTimes sheet (Break End is empty)
+        const breakTimesData = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: 'BreakTimes!A2:G1000',
+        });
+
+        const breakEntries = breakTimesData.data.values || [];
+        let breakRowIndex = -1;
+        let breakStartTime: string | null = null;
+
+        for (let i = breakEntries.length - 1; i >= 0; i--) {
+            const rowDate = breakEntries[i][0] ? new Date(breakEntries[i][0]).toLocaleDateString('en-US') : '';
+            if (rowDate === today && breakEntries[i][1] === staffName && !breakEntries[i][4]) {
+                breakRowIndex = i + 2;
+                breakStartTime = breakEntries[i][3]; // Break Start column
+                break;
+            }
+        }
+
+        if (breakRowIndex === -1 || !breakStartTime) {
+            return { success: false, message: 'No active break found!' };
+        }
+
+        // Calculate break duration in minutes
+        let breakDurationMinutes = 0;
+        try {
+            const breakStart = new Date(`1/1/2000 ${breakStartTime}`);
+            const breakEnd = new Date(`1/1/2000 ${timeStr}`);
+            breakDurationMinutes = Math.round((breakEnd.getTime() - breakStart.getTime()) / 60000);
+        } catch (e) {
+            console.error('Error calculating break duration:', e);
+            breakDurationMinutes = 0;
+        }
+
+        // Update BreakTimes row with end time and duration
+        await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: `BreakTimes!E${breakRowIndex}:F${breakRowIndex}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+                values: [[timeStr, breakDurationMinutes]]
+            },
+        });
+
+        // Find Dashboard row and update status + accumulate break time in Notes
         const dashboardData = await sheets.spreadsheets.values.get({
             spreadsheetId,
-            range: 'Dashboard!A2:J1000',
+            range: 'Dashboard!A2:K1000',
         });
 
         const dashboardEntries = dashboardData.data.values || [];
         let dashboardRowIndex = -1;
-        let breakStartTime: string | null = null;
+        let currentNotes = '';
+        let currentBreakMins = 0;
 
         for (let i = dashboardEntries.length - 1; i >= 0; i--) {
             const rowDate = dashboardEntries[i][0] ? new Date(dashboardEntries[i][0]).toLocaleDateString('en-US') : '';
             if (rowDate === today && dashboardEntries[i][1] === staffName && dashboardEntries[i][9] === 'On a Break') {
                 dashboardRowIndex = i + 2;
-                // Try to extract break start time from sign out column
-                breakStartTime = dashboardEntries[i][5]; // Column F (Sign Out)
+                currentNotes = dashboardEntries[i][10] || '';
+                // Parse existing break time from notes (e.g., "Break: 15 min")
+                const match = currentNotes.match(/Break: (\d+) min/);
+                if (match) {
+                    currentBreakMins = parseInt(match[1]);
+                }
                 break;
             }
         }
 
         if (dashboardRowIndex === -1) {
-            return { success: false, message: 'No active break found!' };
+            return { success: false, message: 'No active shift found in Dashboard!' };
         }
 
-        // Calculate break duration
-        let breakDurationMinutes = 0;
-        if (breakStartTime) {
-            try {
-                const breakStart = new Date(`1/1/2000 ${breakStartTime}`);
-                const breakEnd = new Date(`1/1/2000 ${timeStr}`);
-                breakDurationMinutes = Math.round((breakEnd.getTime() - breakStart.getTime()) / 60000);
-            } catch (e) {
-                console.error('Error calculating break duration:', e);
-            }
-        }
+        const totalBreakMins = currentBreakMins + breakDurationMinutes;
+        const updatedNotes = `Break: ${totalBreakMins} min`;
 
-        // Update status back to "Working"
+        // Update Dashboard: Status back to "Working" and update Notes with cumulative break time
         await sheets.spreadsheets.values.update({
             spreadsheetId,
-            range: `Dashboard!J${dashboardRowIndex}`,
+            range: `Dashboard!J${dashboardRowIndex}:K${dashboardRowIndex}`,
             valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [['Working']] },
-        });
-
-        // Clear the sign out time (column F) since they're back to working
-        await sheets.spreadsheets.values.update({
-            spreadsheetId,
-            range: `Dashboard!F${dashboardRowIndex}`,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [['']] },
+            requestBody: {
+                values: [['Working', updatedNotes]]
+            },
         });
 
         return {
             success: true,
-            message: `Returned from ${breakDurationMinutes} minute break`,
+            message: `Returned from ${breakDurationMinutes} min break (Total: ${totalBreakMins} min)`,
             breakDuration: breakDurationMinutes
         };
     } catch (error: any) {
         console.error('Return from break error:', error);
-        return { success: false, message: 'Error returning from break' };
+        return { success: false, message: `Error returning from break: ${error.message}` };
     }
 }
 
