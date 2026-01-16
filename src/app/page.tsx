@@ -187,6 +187,37 @@ export default function TimeClock() {
     }
   };
 
+  const handleReturnFromBreak = async () => {
+    if (!selectedStaff) {
+      setMessage('Please select your name');
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/return-break', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffName: selectedStaff }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMessage(`✓ ${data.message}`);
+        loadData(); // Refresh status
+      } else {
+        setMessage(`✗ ${data.error}`);
+      }
+    } catch (error) {
+      setMessage('✗ Error returning from break');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStaffStatusObj = () => {
     return staffStatus.find(s => s.name === selectedStaff);
   };
@@ -267,15 +298,18 @@ export default function TimeClock() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <button
-                  onClick={handleClockIn}
-                  disabled={loading || !selectedStaff || isStaffClockedIn}
-                  className="px-4 py-4 text-lg font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition transform hover:scale-105"
+                  onClick={isStaffOnBreak ? handleReturnFromBreak : handleClockIn}
+                  disabled={loading || !selectedStaff || (isStaffClockedIn && !isStaffOnBreak)}
+                  className={`px-4 py-4 text-lg font-semibold text-white rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition transform hover:scale-105 ${isStaffOnBreak
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-green-600 hover:bg-green-700'
+                    }`}
                 >
-                  {loading ? '...' : isStaffOnBreak ? 'Back from Break' : 'Clock In'}
+                  {loading ? '...' : isStaffOnBreak ? '↩️ Return from Break' : 'Clock In'}
                 </button>
                 <button
                   onClick={handleTakeBreak}
-                  disabled={loading || !selectedStaff || !isStaffClockedIn}
+                  disabled={loading || !selectedStaff || !isStaffClockedIn || isStaffOnBreak}
                   className="px-4 py-4 text-lg font-semibold text-white bg-orange-500 rounded-lg hover:bg-orange-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition transform hover:scale-105"
                 >
                   {loading ? '...' : 'Break Time'}
