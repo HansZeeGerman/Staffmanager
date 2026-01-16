@@ -142,26 +142,28 @@ export async function clockIn(
             requestBody: { values },
         });
 
-        // Update Dashboard Sheet
+        // Update Dashboard Sheet with new column structure
         const dashboardValues = [
             [
-                now.toLocaleDateString('en-US'), // Date
-                staff.name,                      // Staff Name
-                staff.department,                // Department
-                staff.position,                  // Position
-                now.toLocaleTimeString('en-US'), // Sign In
-                '',                              // Sign Out
-                null,                            // Hours (FORMULA)
-                staff.hourlyWage,                // Hourly Wage
-                null,                            // Pay (FORMULA)
-                'Working',                       // Status
-                ''                               // Notes
+                now.toLocaleDateString('en-US'), // A: Date
+                staff.name,                      // B: Staff Name
+                staff.department,                // C: Department
+                staff.position,                  // D: Position
+                now.toLocaleTimeString('en-US'), // E: Sign In
+                '',                              // F: Sign Out (empty)
+                null,                            // G: Total Hours (FORMULA)
+                0,                               // H: Break Mins (default 0)
+                null,                            // I: Paid Hours (FORMULA)
+                staff.hourlyWage,                // J: Hourly Wage
+                null,                            // K: Pay for Day (FORMULA)
+                'Working',                       // L: Status
+                ''                               // M: Notes
             ]
         ];
 
         await sheets.spreadsheets.values.append({
             spreadsheetId,
-            range: 'Dashboard!A:K',
+            range: 'Dashboard!A:M', // Updated range
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: dashboardValues },
         });
