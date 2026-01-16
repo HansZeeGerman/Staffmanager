@@ -56,7 +56,7 @@ export default function TimeClock() {
         setDebugData({ error: 'Debug Fetch Failed', details: e.message });
       }
 
-      setDebugData(prev => ({ ...prev, status: 'FETCHING_STAFF_API' }));
+      setDebugData((prev: any) => ({ ...prev, status: 'FETCHING_STAFF_API' }));
 
       const [staffRes, statusRes] = await Promise.all([
         fetch('/api/staff', { cache: 'no-store' }),
@@ -83,7 +83,7 @@ export default function TimeClock() {
     } catch (error: any) {
       console.error('Error loading data:', error);
       setErrorDetails(error.message || JSON.stringify(error));
-      setDebugData(prev => ({ ...prev, error: error.message, stack: error.stack }));
+      setDebugData((prev: any) => ({ ...prev, error: error.message, stack: error.stack }));
     }
   };
 
