@@ -64,8 +64,6 @@ export default function TimeClock() {
       ]);
 
       const staffText = await staffRes.text();
-      // Store raw text for debugging
-      setDebugData({ status: staffRes.status, raw: staffText.substring(0, 500), fetchedStaffAt: new Date().toISOString() });
 
       if (!staffRes.ok) {
         throw new Error(`Staff API Error: ${staffRes.status} - ${staffText}`);
@@ -73,6 +71,16 @@ export default function TimeClock() {
 
       const staff = JSON.parse(staffText);
       setStaffList(staff);
+
+      // Store debug info AFTER setting state to capture parsed data
+      setDebugData({
+        status: staffRes.status,
+        raw: staffText.substring(0, 500),
+        parsedCount: staff.length,
+        parsedNames: staff.map((s: any) => s.name).join(', '),
+        setStaffListCalled: true,
+        fetchedStaffAt: new Date().toISOString()
+      });
 
       if (statusRes.ok) {
         const status = await statusRes.json();
