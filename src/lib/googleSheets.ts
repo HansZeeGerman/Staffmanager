@@ -142,7 +142,7 @@ export async function clockIn(
             requestBody: { values },
         });
 
-        // Update Dashboard Sheet with new column structure
+        // Update Dashboard Sheet (Code_v12.gs structure)
         const dashboardValues = [
             [
                 now.toLocaleDateString('en-US'), // A: Date
@@ -150,20 +150,18 @@ export async function clockIn(
                 staff.department,                // C: Department
                 staff.position,                  // D: Position
                 now.toLocaleTimeString('en-US'), // E: Sign In
-                '',                              // F: Sign Out (empty)
-                null,                            // G: Total Hours (FORMULA)
-                0,                               // H: Break Mins (default 0)
-                null,                            // I: Paid Hours (FORMULA)
-                staff.hourlyWage,                // J: Hourly Wage
-                null,                            // K: Pay for Day (FORMULA)
-                'Working',                       // L: Status
-                ''                               // M: Notes
+                '',                              // F: Sign Out
+                null,                            // G: Hours Worked (FORMULA)
+                staff.hourlyWage,                // H: Hourly Wage
+                null,                            // I: Pay for Day (FORMULA)
+                'Working',                       // J: Status
+                ''                               // K: Notes
             ]
         ];
 
         await sheets.spreadsheets.values.append({
             spreadsheetId,
-            range: 'Dashboard!A:M', // Updated range
+            range: 'Dashboard!A:K',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: dashboardValues },
         });
@@ -221,7 +219,7 @@ export async function takeBreak(
         // Update Dashboard Status to "On a Break"
         const dashboardData = await sheets.spreadsheets.values.get({
             spreadsheetId,
-            range: 'Dashboard!A2:M1000',
+            range: 'Dashboard!A2:J1000',
         });
 
         const dashboardEntries = dashboardData.data.values || [];
@@ -229,7 +227,7 @@ export async function takeBreak(
 
         for (let i = dashboardEntries.length - 1; i >= 0; i--) {
             const rowDate = dashboardEntries[i][0] ? new Date(dashboardEntries[i][0]).toLocaleDateString('en-US') : '';
-            if (rowDate === today && dashboardEntries[i][1] === staffName && dashboardEntries[i][11] === 'Working') {
+            if (rowDate === today && dashboardEntries[i][1] === staffName && dashboardEntries[i][9] === 'Working') {
                 dashboardRowIndex = i + 2;
                 break;
             }
@@ -238,7 +236,7 @@ export async function takeBreak(
         if (dashboardRowIndex !== -1) {
             await sheets.spreadsheets.values.update({
                 spreadsheetId,
-                range: `Dashboard!L${dashboardRowIndex}`,
+                range: `Dashboard!J${dashboardRowIndex}`,
                 valueInputOption: 'USER_ENTERED',
                 requestBody: { values: [['On a Break']] },
             });
