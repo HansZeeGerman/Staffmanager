@@ -221,7 +221,7 @@ export async function takeBreak(
         // Update Dashboard Status to "On a Break"
         const dashboardData = await sheets.spreadsheets.values.get({
             spreadsheetId,
-            range: 'Dashboard!A2:J1000',
+            range: 'Dashboard!A2:M1000',
         });
 
         const dashboardEntries = dashboardData.data.values || [];
@@ -229,7 +229,7 @@ export async function takeBreak(
 
         for (let i = dashboardEntries.length - 1; i >= 0; i--) {
             const rowDate = dashboardEntries[i][0] ? new Date(dashboardEntries[i][0]).toLocaleDateString('en-US') : '';
-            if (rowDate === today && dashboardEntries[i][1] === staffName && dashboardEntries[i][9] === 'Working') {
+            if (rowDate === today && dashboardEntries[i][1] === staffName && dashboardEntries[i][11] === 'Working') {
                 dashboardRowIndex = i + 2;
                 break;
             }
@@ -238,14 +238,7 @@ export async function takeBreak(
         if (dashboardRowIndex !== -1) {
             await sheets.spreadsheets.values.update({
                 spreadsheetId,
-                range: `Dashboard!F${dashboardRowIndex}`,
-                valueInputOption: 'USER_ENTERED',
-                requestBody: { values: [[timeStr]] },
-            });
-
-            await sheets.spreadsheets.values.update({
-                spreadsheetId,
-                range: `Dashboard!J${dashboardRowIndex}`,
+                range: `Dashboard!L${dashboardRowIndex}`,
                 valueInputOption: 'USER_ENTERED',
                 requestBody: { values: [['On a Break']] },
             });
