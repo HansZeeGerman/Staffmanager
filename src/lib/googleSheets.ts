@@ -91,6 +91,7 @@ export async function clockIn(
 ): Promise<{ success: boolean; message: string }> {
     try {
         spreadsheetId = HARDCODED_SPREADSHEET_ID;
+        staffName = staffName.trim(); // Remove leading/trailing whitespace
         const sheets = await getGoogleSheetsClient();
 
         // Get staff info from roster
@@ -179,6 +180,7 @@ export async function takeBreak(
 ): Promise<{ success: boolean; message: string }> {
     try {
         spreadsheetId = HARDCODED_SPREADSHEET_ID;
+        staffName = staffName.trim(); // Remove leading/trailing whitespace
         const sheets = await getGoogleSheetsClient();
         const today = new Date().toLocaleDateString('en-US');
 
@@ -254,6 +256,83 @@ export async function takeBreak(
     }
 }
 
+// Return from Break - Calculate break duration and update status back to Working
+export async function returnFromBreak(
+    spreadsheetId: string,
+    staffName: string
+): Promise<{ success: boolean; message: string; breakDuration?: number }> {
+    try {
+        spreadsheetId = HARDCODED_SPREADSHEET_ID;
+        staffName = staffName.trim(); // Remove leading/trailing whitespace
+        const sheets = await getGoogleSheetsClient();
+        const today = new Date().toLocaleDateString('en-US');
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US');
+
+        // Find today's "On a Break" entry in Dashboard
+        const dashboardData = await sheets.spreadsheets.values.get({
+            spreadsheetId,
+            range: 'Dashboard!A2:J1000',
+        });
+
+        const dashboardEntries = dashboardData.data.values || [];
+        let dashboardRowIndex = -1;
+        let breakStartTime: string | null = null;
+
+        for (let i = dashboardEntries.length - 1; i >= 0; i--) {
+            const rowDate = dashboardEntries[i][0] ? new Date(dashboardEntries[i][0]).toLocaleDateString('en-US') : '';
+            if (rowDate === today && dashboardEntries[i][1] === staffName && dashboardEntries[i][9] === 'On a Break') {
+                dashboardRowIndex = i + 2;
+                // Try to extract break start time from sign out column
+                breakStartTime = dashboardEntries[i][5]; // Column F (Sign Out)
+                break;
+            }
+        }
+
+        if (dashboardRowIndex === -1) {
+            return { success: false, message: 'No active break found!' };
+        }
+
+        // Calculate break duration
+        let breakDurationMinutes = 0;
+        if (breakStartTime) {
+            try {
+                const breakStart = new Date(`1/1/2000 ${breakStartTime}`);
+                const breakEnd = new Date(`1/1/2000 ${timeStr}`);
+                breakDurationMinutes = Math.round((breakEnd.getTime() - breakStart.getTime()) / 60000);
+            } catch (e) {
+                console.error('Error calculating break duration:', e);
+            }
+        }
+
+        // Update status back to "Working"
+        await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: `Dashboard!J${dashboardRowIndex}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [[`Working (break: ${breakDurationMinutes} min)`]] },
+        });
+
+        // Clear the sign out time (column F) since they're back to working
+        await sheets.spreadsheets.values.update({
+            spreadsheetId,
+            range: `Dashboard!F${dashboardRowIndex}`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values: [['']] },
+        });
+
+        return {
+            success: true,
+            message: `Returned from ${breakDurationMinutes} minute break`,
+            breakDuration: breakDurationMinutes
+        };
+    } catch (error: any) {
+        console.error('Return from break error:', error);
+        return { success: false, message: 'Error returning from break' };
+    }
+}
+
+
 // Clock Out - Update existing entry with sign out time
 export async function clockOut(
     spreadsheetId: string,
@@ -261,6 +340,7 @@ export async function clockOut(
 ): Promise<{ success: boolean; message: string }> {
     try {
         spreadsheetId = HARDCODED_SPREADSHEET_ID;
+        staffName = staffName.trim(); // Remove leading/trailing whitespace
         const sheets = await getGoogleSheetsClient();
 
         // Find today's entry
